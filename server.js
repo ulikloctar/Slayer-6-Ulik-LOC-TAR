@@ -1,0 +1,100 @@
+// server.js - Базовый сервер для Slayer 6 (2 игрока)
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" } // Разрешаем подключение с любого домена
+});
+
+// Хранилище комнат: { "КОД": [socketId1, socketId2] }
+const rooms = {};
+
+// Генерация случайного кода (5 символов)
+function generateCode() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 4; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+io.on('connection', (socket) => {
+  console.log('Игрок подключился:', socket.id);
+
+  // 1. Создание игры (Хост)
+  socket.on('createGame', () => {
+    let code = generateCode();
+    // Убедимся, что код уникален
+    while (rooms[code]) {
+      code = generateCode();
+    }
+    rooms[code] = [socket.id]; // Хост - первый в комнате
+    socket.join(code); // Подключаем сокет к комнате
+    socket.emit('gameCreated', { code }); // Отправляем код хосту
+    console.log(`Создана игра с кодом: ${code}`);
+  });
+
+  // 2. Присоединение к игре (Гость)
+  socket.on('joinGame', (data) => {
+    const { code } = data;
+    const room = rooms[code];
+
+    if (!room) {
+      socket.emit('error', { message: 'Игра не найдена!' });
+      return;
+    }
+    if (room.length >= 2) {
+      socket.emit('error', { message: 'Игра уже полная (2/2)!' });
+      return;
+    }
+
+    room.push(socket.id); // Добавляем гостя
+    socket.join(code);
+    socket.emit('gameJoined', { code }); // Гостю: ты подключился
+    // Хосту: к тебе присоединился друг!
+    socket.to(room[0]).emit('playerJoined', { id: socket.id });
+    console.log(`Игрок ${socket.id} присоединился к ${code}`);
+  });
+
+  // 3. Релей позиции и атак (передача данных)
+  socket.on('playerUpdate', (data) => {
+    const { code, x, y, attacking, attackType } = data;
+    const room = rooms[code];
+    if (room) {
+      // Отправляем данные ДРУГОМУ игроку в комнате
+      socket.to(code).emit('opponentUpdate', {
+        id: socket.id,
+        x, y, attacking, attackType
+      });
+    }
+  });
+
+  // 4. Отключение игрока
+  socket.on('disconnect', () => {
+    console.log('Игрок отключился:', socket.id);
+    // Удаляем игрока из всех комнат
+    for (const code in rooms) {
+      const index = rooms[code].indexOf(socket.id);
+      if (index !== -1) {
+        rooms[code].splice(index, 1);
+        // Сообщаем оставшемуся игроку
+        socket.to(code).emit('playerLeft', { id: socket.id });
+        // Если комната пуста - удаляем
+        if (rooms[code].length === 0) {
+          delete rooms[code];
+        }
+        break;
+      }
+    }
+  });
+});
+
+// Запуск сервера
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Сервер запущен на порту ${PORT}`);
+});
