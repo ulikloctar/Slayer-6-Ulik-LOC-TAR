@@ -1,6 +1,6 @@
 // multiplayer.js - Клиентская часть для Slayer 6 (2 игрока)
-// Подключение к серверу (для локального теста: http://localhost:3000, для Render: https://твой-сайт.onrender.com)
-const MULTIPLAYER_SERVER = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
+// Подключение к серверу на Render.com
+const MULTIPLAYER_SERVER = 'https://slayer-6-ulik-loc-tar.onrender.com';
 let socket = null;
 let isMultiplayer = false;
 let isHost = false;
@@ -136,7 +136,7 @@ if (btnHelpFriend) {
 if (btnSubmitCode) {
     btnSubmitCode.addEventListener('click', () => {
         const code = joinCodeInput ? joinCodeInput.value.trim() : '';
-        if (!code || code.length !== 4) {
+        if (!code || code.length !== 5) {
             mpStatus = 'Введи правильный код (5 символа)!';
             updateMPStatus();
             return;
@@ -226,8 +226,40 @@ window.startGame = function() {
     // Если есть оригинальная функция, вызываем её
     if (typeof originalStartGame === 'function') {
         // Не вызываем сразу, ждём выбора в мультиплеерном меню
-        // originalStartGame();
+        originalStartGame();
     }
 };
+
+// Фикс кнопки START: при нажатии показываем меню мультиплеера
+document.addEventListener('DOMContentLoaded', () => {
+    const startGameBtn = document.getElementById('startGameBtn');
+    if (startGameBtn) {
+        // Клонируем кнопку, чтобы удалить старые обработчики
+        const newBtn = startGameBtn.cloneNode(true);
+        startGameBtn.parentNode.replaceChild(newBtn, startGameBtn);
+        
+        newBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('START нажата!');
+            
+            // Скрываем экран ввода имени
+            const nameScreen = document.getElementById('nameScreen');
+            if (nameScreen) nameScreen.style.display = 'none';
+            
+            // Инициализируем мультиплеер, если ещё не сделано
+            if (!socket) {
+                initMultiplayer();
+            }
+            
+            // Показываем меню мультиплеера
+            if (multiplayerMenu) {
+                multiplayerMenu.style.display = 'flex';
+                console.log('Меню мультиплеера показано!');
+            } else {
+                console.error('multiplayerMenu не найдено!');
+            }
+        });
+    }
+});
 
 console.log('Multiplayer.js загружен!');
