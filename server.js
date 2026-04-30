@@ -38,7 +38,7 @@ io.on('connection', (socket) => {
     console.log(`Создана игра с кодом: ${code}`);
   });
 
-  // 2. Присоединение к игре (Гость)
+  // 2. Присоединение к игре (Друг)
   socket.on('joinGame', (data) => {
     const { code } = data;
     const room = rooms[code];
@@ -62,14 +62,25 @@ io.on('connection', (socket) => {
 
   // 3. Релей позиции и атак (передача данных)
   socket.on('playerUpdate', (data) => {
-    const { code, x, y, attacking, attackType } = data;
+    const { code } = data;
     const room = rooms[code];
     if (room) {
-      // Отправляем данные ДРУГОМУ игроку в комнате
+      // Отправляем ВСЕ данные ДРУГОМУ игроку в комнате
       socket.to(code).emit('opponentUpdate', {
         id: socket.id,
-        x, y, attacking, attackType
+        ...data, // Передаем все поля (x, y, attacking, attackType, walkCycle, eyeTimer, isWerewolf, dy)
+        code: undefined // Удаляем code из данных для друга
       });
+    }
+  });
+
+  // 4. Релей врагов (только от хоста к другу)
+  socket.on('enemiesUpdate', (data) => {
+    const { code, enemies } = data;
+    const room = rooms[code];
+    if (room) {
+      // Хост отправляет врагов другу
+      socket.to(code).emit('hostEnemies', { enemies });
     }
   });
 
@@ -89,6 +100,15 @@ io.on('connection', (socket) => {
         }
         break;
       }
+    }
+  });
+
+  // 5. Удар по другу (host -> friend)
+  socket.on('opponentHit', (data) => {
+    const { code, damage } = data;
+    const room = rooms[code];
+    if (room) {
+      socket.to(code).emit('opponentHit', { damage });
     }
   });
 });
