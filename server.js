@@ -34,6 +34,7 @@ io.on('connection', (socket) => {
     }
     rooms[code] = [socket.id]; // Хост - первый в комнате
     socket.join(code); // Подключаем сокет к комнате
+    socket.room = code; // Сохраняем код комнаты в сокете
     socket.emit('gameCreated', { code }); // Отправляем код хосту
     console.log(`Создана игра с кодом: ${code}`);
   });
@@ -54,6 +55,7 @@ io.on('connection', (socket) => {
 
     room.push(socket.id); // Добавляем гостя
     socket.join(code);
+    socket.room = code; // Сохраняем код комнаты в сокете
     socket.emit('gameJoined', { code }); // Гостю: ты подключился
     // Хосту: к тебе присоединился друг!
     socket.to(room[0]).emit('playerJoined', { id: socket.id });
@@ -109,6 +111,25 @@ io.on('connection', (socket) => {
     const room = rooms[code];
     if (room) {
       socket.to(code).emit('opponentHit', { damage });
+    }
+  });
+
+  // 6. Синхронизация паузы
+  // Хост отправляет состояние паузы всем в комнате
+  socket.on('pauseGame', (data) => {
+    if (socket.room) {
+      io.to(socket.room).emit('pauseGame', data);
+    }
+  });
+
+  // Друг запрашивает паузу (отправляется только хосту)
+  socket.on('pauseRequest', () => {
+    if (socket.room) {
+      const room = rooms[socket.room];
+      if (room && room.length > 0) {
+        const hostId = room[0]; // Хост - первый игрок в комнате
+        io.to(hostId).emit('pauseRequest');
+      }
     }
   });
 });
