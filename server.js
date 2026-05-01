@@ -127,8 +127,13 @@ io.on('connection', (socket) => {
   // 6. Синхронизация опыта от хоста к клиенту
   socket.on('syncExp', (data) => {
     const { exp } = data;
-    if (socket.room) {
-      socket.to(socket.room).emit('syncExp', { exp });
+    const room = rooms[socket.room];
+    if (room && room.length > 1) {
+      // Находим получателя (не отправителя)
+      const recipientId = room.find(id => id !== socket.id);
+      if (recipientId) {
+        io.to(recipientId).emit('syncExp', { exp });
+      }
     }
   });
 
