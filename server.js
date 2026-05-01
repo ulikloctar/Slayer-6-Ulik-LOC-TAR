@@ -86,36 +86,18 @@ io.on('connection', (socket) => {
     }
   });
 
-   // 5. Пересылка убийства врага от Друга к Хосту
-   socket.on('enemyKilled', (data) => {
-     const { code, exp } = data;
-     const room = rooms[code];
-     if (room) {
-       // Отправляем Хосту (первому в комнате)
-       socket.to(room[0]).emit('opponentKilledEnemy', { exp });
-     }
-   });
+  // 5. Пересылка убийства врага от Друга к Хосту
+  socket.on('enemyKilled', (data) => {
+    const { code, exp } = data;
+    const room = rooms[code];
+    if (room) {
+      // Отправляем Хосту (первому в комнате)
+      socket.to(room[0]).emit('opponentKilledEnemy', { exp });
+    }
+  });
 
-   // 6. Синхронизация опыта и уровня хоста от Хоста к Другу
-   socket.on('syncExp', (data) => {
-     console.log('Server received syncExp from', socket.id, ':', data);
-     const { code, exp, hostLvl } = data;
-     const room = rooms[code];
-     if (room) {
-       // Валидация hostLvl
-       const validHostLvl = (hostLvl !== undefined && hostLvl !== null) ? hostLvl : 1;
-       console.log('Server relaying syncExp to friend:', { exp: exp, hostLvl: validHostLvl });
-       socket.to(code).emit('syncExp', {
-         exp: exp,
-         hostLvl: validHostLvl
-       });
-     } else {
-       console.error('Server: room not found for code', code);
-     }
-   });
- 
-   // 7. Отключение игрока
-   socket.on('disconnect', () => {
+  // 4. Отключение игрока
+  socket.on('disconnect', () => {
     console.log('Игрок отключился:', socket.id);
     // Удаляем игрока из всех комнат
     for (const code in rooms) {
