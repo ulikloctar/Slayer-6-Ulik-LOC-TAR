@@ -124,6 +124,14 @@ io.on('connection', (socket) => {
     }
   });
 
+  // 6. Синхронизация опыта от хоста к клиенту
+  socket.on('syncExp', (data) => {
+    const { exp } = data;
+    if (socket.room) {
+      socket.to(socket.room).emit('syncExp', { exp });
+    }
+  });
+
   // 6. Синхронизация паузы
   // Хост отправляет состояние паузы всем в комнате
   socket.on('pauseGame', (data) => {
