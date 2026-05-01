@@ -98,14 +98,19 @@ io.on('connection', (socket) => {
 
    // 6. Синхронизация опыта и уровня хоста от Хоста к Другу
    socket.on('syncExp', (data) => {
-     const { code } = data;
+     console.log('Server received syncExp from', socket.id, ':', data);
+     const { code, exp, hostLvl } = data;
      const room = rooms[code];
      if (room) {
-       // Отправляем данные опыта и уровня хоста Другу (второму игроку)
+       // Валидация hostLvl
+       const validHostLvl = (hostLvl !== undefined && hostLvl !== null) ? hostLvl : 1;
+       console.log('Server relaying syncExp to friend:', { exp: exp, hostLvl: validHostLvl });
        socket.to(code).emit('syncExp', {
-         exp: data.exp,
-         hostLvl: data.hostLvl
+         exp: exp,
+         hostLvl: validHostLvl
        });
+     } else {
+       console.error('Server: room not found for code', code);
      }
    });
  
