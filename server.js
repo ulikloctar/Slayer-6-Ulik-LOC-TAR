@@ -86,6 +86,16 @@ io.on('connection', (socket) => {
     }
   });
 
+  // 5. Пересылка убийства врага от Друга к Хосту
+  socket.on('enemyKilled', (data) => {
+    const { code, exp } = data;
+    const room = rooms[code];
+    if (room) {
+      // Отправляем Хосту (первому в комнате)
+      socket.to(room[0]).emit('opponentKilledEnemy', { exp });
+    }
+  });
+
   // 4. Отключение игрока
   socket.on('disconnect', () => {
     console.log('Игрок отключился:', socket.id);
