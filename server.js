@@ -124,16 +124,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 6. RAMPAGE эффект от хоста к клиенту
-  socket.on('rampageEffect', (data) => {
-    const { code } = data;
-    const room = rooms[code];
-    if (room) {
-      socket.to(code).emit('rampageEffect', {});
-    }
-  });
-
-  // 7. Синхронизация опыта от хоста к клиенту
+  // 6. Синхронизация опыта от хоста к клиенту
   socket.on('syncExp', (data) => {
     const { exp, hostLvl } = data;
     const room = rooms[socket.room];
