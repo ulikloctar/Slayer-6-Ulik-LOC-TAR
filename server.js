@@ -124,16 +124,34 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 6. Синхронизация опыта от хоста к клиенту
+  // 6. RAMPAGE эффект от хоста к клиенту
+  socket.on('rampageEffect', (data) => {
+    const { code } = data;
+    const room = rooms[code];
+    if (room) {
+      socket.to(code).emit('rampageEffect', {});
+    }
+  });
+
+  // 7. Синхронизация опыта от хоста к клиенту
   socket.on('syncExp', (data) => {
-    const { exp } = data;
+    const { exp, hostLvl } = data;
     const room = rooms[socket.room];
     if (room && room.length > 1) {
       // Находим получателя (не отправителя)
       const recipientId = room.find(id => id !== socket.id);
       if (recipientId) {
-        io.to(recipientId).emit('syncExp', { exp });
+        io.to(recipientId).emit('syncExp', { exp, hostLvl });
       }
+    }
+  });
+
+  // 7. Синхронизация анимации повышения уровня
+  socket.on('levelUp', (data) => {
+    const room = rooms[socket.room];
+    if (room && room.length > 1) {
+      // Отправляем второму игроку
+      socket.to(socket.room).emit('opponentLevelUp', data);
     }
   });
 
