@@ -86,6 +86,24 @@ io.on('connection', (socket) => {
     }
   });
 
+  // 4.1 Релей боссов и NPC (только от хоста к другу)
+  socket.on('bossesUpdate', (data) => {
+    const { code, bosses } = data;
+    const room = rooms[code];
+    if (room) {
+      socket.to(code).emit('hostBosses', { bosses });
+    }
+  });
+
+  // 4.2 Релей эффектов крови от хоста к другу
+  socket.on('enemyBloodHit', (data) => {
+    const { code, x, y, count } = data;
+    const room = rooms[code];
+    if (room) {
+      socket.to(code).emit('friendBloodHit', { x, y, count });
+    }
+  });
+
   // 5. Пересылка убийства врага от Друга к Хосту
   socket.on('enemyKilled', (data) => {
     const { code, exp } = data;
